@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/WorldCupSimulator.iml" filepath="$PROJECT_DIR$/.idea/modules/WorldCupSimulator.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/WorldCupSimulator-build.iml" filepath="$PROJECT_DIR$/.idea/modules/WorldCupSimulator-build.iml" />
     </modules>
   </component>
 </project>
