@@ -130,18 +130,7 @@ object wc_simulator extends App{
 
     }
 
-    //println(A)
-    //println(B)
-    println(s"$g_a:$g_b")
-
-    //val total = g_a + g_b
-    //total
-
-    /*  val res = {
-        if (g_a > g_b) (3, 0)
-        else if (g_a == g_b) (1, 1)
-        else (0, 3)
-      }*/
+    //println(s"$g_a:$g_b")
 
     val res = (g_a, g_b)
 
@@ -174,46 +163,36 @@ object wc_simulator extends App{
 
     //println(pkt_s)
     val med = pkt_s((nr - 1) / 2)
-    /*val res = {
-      if( med > 0 ) 3
-      else if ( med == 0 ) 1
-      else 0
-    }
-    res*/
 
     val m_gs = gs(pkt_s((nr - 1) / 2)._2)
     val m_gc = gc(pkt_s((nr - 1) / 2)._2)
 
-    //println(s"$m_gs:$m_gc")
-
-    println(s"${gs.sum}:${gc.sum}")
+    //println(s"${gs.sum}:${gc.sum}")
 
     (m_gs, m_gc)
   }
 
 
-
   def pickWinner(table: ArrayBuffer[Int], goalDif: ArrayBuffer[Int], matches: ArrayBuffer[Int]): Int = {
 
-    println(s"matches: $matches")
+    //println(s"matches: $matches")
 
-    //val poI = po.zipWithIndex
     val poI = table.zipWithIndex
 
-    println(s"${table.max}, ${table.count(_ == table.max)}")
+    //println(s"${table.max}, ${table.count(_ == table.max)}")
 
     val winner: Int = table.count(_ == table.max) match {
       case 1 => poI.max._2
       case 2 =>
 
         val ind2 = poI.filter(_._1 == table.max).map(_._2)
-        println(s"ind2 $ind2")
+        //println(s"ind2 $ind2")
 
         val I2 = if (goalDif(2 * ind2(0)) - goalDif(2 * ind2(0) + 1) > goalDif(2 * ind2(1)) - goalDif(2 * ind2(1) + 1)) ind2(0)
         else if (goalDif(2 * ind2(0)) - goalDif(2 * ind2(0) + 1) < goalDif(2 * ind2(1)) - goalDif(2 * ind2(1) + 1)) ind2(1)
-        else if (goalDif(2 * ind2(0)) > goalDif(2 * ind2(1))) ind2(0)//zdobyte bramki
+        else if (goalDif(2 * ind2(0)) > goalDif(2 * ind2(1))) ind2(0)//scored goals
         else if (goalDif(2 * ind2(0)) < goalDif(2 * ind2(1))) ind2(1)
-        //poprawic, tu ma byc bezposredni mecz, jeszcze źle
+        //direct match
         else if(check_m(matches, ind2(0), ind2(1)) == 3) ind2(0)
         else if(check_m(matches, ind2(0), ind2(1)) == 0) ind2(1)
         else //random promotion
@@ -223,25 +202,21 @@ object wc_simulator extends App{
 
       case 3 =>
 
-        //g = ArrayBuffer(2, 3, 4, 6, 8, 1, 2, 6)
-        //po = ArrayBuffer(3, 3, 9, 3)
-
         val ind3 = poI.filter(_._1 == table.max).map(_._2)
 
-        println(s"ind3 ppp,$ind3")
+        //println(s"ind3 ppp,$ind3")
 
         val gd1 = goalDif(2 * ind3(0)) - goalDif(2 * ind3(0) + 1)
         val gd2 = goalDif(2 * ind3(1)) - goalDif(2 * ind3(1) + 1)
         val gd3 = goalDif(2 * ind3(2)) - goalDif(2 * ind3(2) + 1)
 
-        println(s"goal differences,$gd1,$gd2,$gd3")
-
+        //println(s"goal differences,$gd1,$gd2,$gd3")
 
         val I3 = List(gd1, gd2, gd3).count(_ == math.max(gd1, math.max(gd2, gd3))) match {
 
           case 1 =>
 
-            println(s"Lider w bilansie bramkowym")
+            //println(s"Lider in goal balance")
 
             val ind31 = math.max(gd1, math.max(gd2, gd3)) match {
 
@@ -251,39 +226,36 @@ object wc_simulator extends App{
               case _ => 6
             }
 
-            println(ind31)
+            //println(ind31)
             ind31
 
           case 2 =>
 
-            println(s"dwie drużyny mają taki sam bilans bramek -> bramki strzelone")
+            //println(s"two teams have the same goal balance -> goals scored will decide")
 
-            //więcej strzelonych //zipWithIndex wątpliwe
             val ind32: Seq[Int] = List(gd1, gd2, gd3).zip(List(ind3(0), ind3(1), ind3(2))).filter(_._1 == math.max(gd1, math.max(gd2, gd3))).map(_._2)
 
-            println(s"${ind32(0)},${ind32(1)}")
+            //println(s"${ind32(0)},${ind32(1)}")
 
-            if (goalDif(2 * ind32(0)) > goalDif(2 * ind32(1))) ind32(0)
-            else if (goalDif(2 * ind32(0)) < goalDif(2 * ind32(1))) ind32(1)
-            //bezpośredni mecz
-            else if(check_m(matches, ind32(0), ind32(1)) == 3) ind32(0)
-            else if(check_m(matches, ind32(0), ind32(1)) == 0) ind32(1)
-            else //random promotion
-              if(r.nextFloat() < 0.5) ind32(0)
+            if (goalDif(2 * ind32.head) > goalDif(2 * ind32(1))) ind32.head
+            else if (goalDif(2 * ind32.head) < goalDif(2 * ind32(1))) ind32(1)
+            //direct match
+            else if(check_m(matches, ind32.head, ind32(1)) == 3) ind32.head
+            else if(check_m(matches, ind32.head, ind32(1)) == 0) ind32(1)
+            else //random promotion (equivalent of fair play classification)
+              if(r.nextFloat() < 0.5) ind32.head
               else ind32(1)
 
-          //trzy drużyny mają taki sam bilans bramek -> bramki strzelone
+          //three team have the same gaol balance -> goals scored will decide
           case 3 =>
 
-            println(s"trzy drużyny mają taki sam bilans bramek -> bramki strzelone")
-
-            //val ind33 = List(gd1, gd2, gd3).zipWithIndex.filter(_._1 == math.max(gd1, math.max(gd2, gd3))).map(_._2)
+            //println(s"three team have the same gaol balance -> goals scored will decide")
 
             val gf1 = goalDif(2 * ind3(0))
             val gf2 = goalDif(2 * ind3(1))
             val gf3 = goalDif(2 * ind3(2))
 
-            println(s"$gf1,$gf2, $gf3")
+            //println(s"$gf1,$gf2, $gf3")
 
             val I33: Int = List(gf1, gf2, gf3).count(_ == math.max(gf1, math.max(gf2, gf3))) match {
 
@@ -297,27 +269,26 @@ object wc_simulator extends App{
                 }
 
 
-              case 2 => //mecz bezpośredni
+              case 2 => //direct match
 
-                println(s"mecz bezpośredni")
+                //println(s"direct match")
 
                 val ind332: Seq[Int] = List(gf1, gf2, gf3).zipWithIndex.filter(_._1 == math.max(gf1, math.max(gf2, gf3))).map(_._2)
 
-                println(s"${check_m(matches, ind332(0), ind332(1))}")
+                //println(s"${check_m(matches, ind332(0), ind332(1))}")
 
-                val index = if(check_m(matches, ind332(0), ind332(1)) == 3) ind332(0)
-                else if(check_m(matches, ind332(0), ind332(1)) == 0) ind332(1)
+                val index = if(check_m(matches, ind332.head, ind332(1)) == 3) ind332.head
+                else if(check_m(matches, ind332.head, ind332(1)) == 0) ind332(1)
                 else //random promotion
-                  if(r.nextFloat() < 0.5) ind332(0)
+                  if(r.nextFloat() < 0.5) ind332.head
                   else ind332(1)
 
                 ind3(index)
 
 
-              case 3 => //tabelka zainteresowanych zespołów - trzy mają tyle samo strzelonych
-                //punkty sprawdzam czy ktoś nie ma więcej punktów w bezpośrednich meczach
+              case 3 => //same points, goal balance and goals scored for three teams; check points in direct matches
 
-                println(s"tabelka zainteresowanych zespołów - trzy mają tyle samo strzelonych punkty sprawdzam czy ktoś nie ma więcej punktów w bezpośrednich meczach")
+                //println(s"same points, goal balance and goals scored for three teams; check points in direct matches")
 
                 val ind33_0_points: Int =
                   check_m(matches, ind3(0), ind3(1)) + check_m(matches, ind3(0), ind3(2))
@@ -327,13 +298,13 @@ object wc_simulator extends App{
                   (if(check_m(matches, ind3(0), ind3(2)) == 1) 1 else 3 - check_m(matches, ind3(0), ind3(2))) +
                     (if(check_m(matches, ind3(1), ind3(2)) == 1) 1 else 3 - check_m(matches, ind3(1), ind3(2)))
 
-                println(s"checki, " +
+                /*println(s"checki, " +
                   s"${check_m(matches, ind3(0), ind3(1)) + check_m(matches, ind3(0), ind3(2))}" +
                   s"${if(check_m(matches, ind3(0), ind3(1)) == 1) 1 else 3 - check_m(matches, ind3(0), ind3(1)) + check_m(matches, ind3(1), ind3(2))}" +
                   s"${(if(check_m(matches, ind3(0), ind3(2)) == 1) 1 else 3 - check_m(matches, ind3(0), ind3(2))) +
                     (if(check_m(matches, ind3(1), ind3(2)) == 1) 1 else 3 - check_m(matches, ind3(1), ind3(2)))}"
-                )
-                println(s"punkty trójki,$ind33_0_points,$ind33_1_points,$ind33_2_points")
+                )*/
+                //println(s"punkty trójki,$ind33_0_points,$ind33_1_points,$ind33_2_points")
 
                 val ind333 = List(ind33_0_points, ind33_1_points, ind33_2_points).iterator.count(p => p == math.max(ind33_0_points, math.max(ind33_1_points, ind33_2_points))) match {
 
@@ -352,10 +323,10 @@ object wc_simulator extends App{
 
                     val ind3332 = List(ind33_0_points, ind33_1_points, ind33_2_points).zipWithIndex.filter(_._1 == math.max(ind33_0_points, math.max(ind33_1_points, ind33_2_points))).map(_._2)
 
-                    val index = if(check_m(matches, ind3332(0), ind3332(1)) == 3) ind3332(0)
-                    else if(check_m(matches, ind3332(0), ind3332(1)) == 0) ind3332(1)
+                    val index = if(check_m(matches, ind3332.head, ind3332(1)) == 3) ind3332.head
+                    else if(check_m(matches, ind3332.head, ind3332(1)) == 0) ind3332(1)
                     else //random promotion
-                      if(r.nextFloat() < 0.5) ind3332(0)
+                      if(r.nextFloat() < 0.5) ind3332.head
                       else ind3332(1)
 
                     ind3(index)
@@ -372,15 +343,9 @@ object wc_simulator extends App{
 
                 ind333
 
-
-
             }
 
             I33
-          //
-
-
-
 
         }
 
@@ -390,7 +355,7 @@ object wc_simulator extends App{
 
         val ind4 = poI.filter(_._1 == table.max).map(_._2)
 
-        //filtr po różnicy bramek
+        //goal difference filter
         val gd1 = goalDif(0) - goalDif(1)
         val gd2 = goalDif(2) - goalDif(3)
         val gd3 = goalDif(4) - goalDif(5)
@@ -400,7 +365,7 @@ object wc_simulator extends App{
 
           case 1 =>
 
-            println(s"filtr po różnicy bramek - 1")
+            //println(s"goal difference filter - 1")
 
             val ind41: Int =  math.max(gd1, math.max(gd2, math.max(gd3, gd4))) match {
 
@@ -414,35 +379,32 @@ object wc_simulator extends App{
 
           case 2 =>
 
-            println(s"filtr po różnicy bramek - 2")
+            //println(s"goal difference filter - 2")
 
-            //więcej strzelonych
+            //more scored
             val ind42 = List(gd1, gd2, gd3, gd4).zipWithIndex.filter(_._1 == math.max(gd1,math.max(gd2, math.max(gd3, gd4)))).map(_._2)
 
-
-
-            if (goalDif(2 * ind42(0)) > goalDif(2 * ind42(1))) ind4(ind42(0))
-            else if (goalDif(2 * ind42(0)) < goalDif(2 * ind42(1))) ind4(ind42(1))
-            //bezpośredni mecz
-            else if(check_m(matches, ind42(0), ind42(1)) == 3) ind4(ind42(0))
-            else if(check_m(matches, ind42(0), ind42(1)) == 0) ind4(ind42(1))
+            if (goalDif(2 * ind42.head) > goalDif(2 * ind42(1))) ind4(ind42.head)
+            else if (goalDif(2 * ind42.head) < goalDif(2 * ind42(1))) ind4(ind42(1))
+            //direct match
+            else if(check_m(matches, ind42.head, ind42(1)) == 3) ind4(ind42.head)
+            else if(check_m(matches, ind42.head, ind42(1)) == 0) ind4(ind42(1))
             else //random promotion
-              if(r.nextFloat() < 0.5) ind4(ind42(0))
+              if(r.nextFloat() < 0.5) ind4(ind42.head)
               else ind4(ind42(1))
 
           case 3 =>
 
-            println(s"filtr po różnicy bramek - 3")
+            //println(s"goal difference filter - 3")
 
-
-            //więcej strzelonych
+            //more scored
             val ind43 = List(gd1, gd2, gd3, gd4).zipWithIndex.filter(_._1 == math.max(gd1,math.max(gd2, math.max(gd3, gd4)))).map(_._2)
 
-            val gf1 = goalDif(2 * ind43(0))
+            val gf1 = goalDif(2 * ind43.head)
             val gf2 = goalDif(2 * ind43(1))
             val gf3 = goalDif(2 * ind43(2))
 
-            println(s"$gf1,$gf2, $gf3")
+            //println(s"$gf1,$gf2, $gf3")
 
             val I43: Int = List(gf1, gf2, gf3).count(_ == math.max(gf1, math.max(gf2, gf3))) match {
 
@@ -450,7 +412,7 @@ object wc_simulator extends App{
 
                 math.max(gf1, math.max(gf2, gf3)) match {
 
-                  case `gf1` => ind43(0)
+                  case `gf1` => ind43.head
                   case `gf2` => ind43(1)
                   case `gf3` => ind43(2)
                   case _ => 6
@@ -458,40 +420,39 @@ object wc_simulator extends App{
 
               case 2 =>
 
-                println(s"432 - mecz bezpośredni")
+                //println(s"432 - direct match")
 
                 val ind432: Seq[Int] = List(gf1, gf2, gf3).zip(ind43).filter(_._1 == math.max(gf1, math.max(gf2, gf3))).map(_._2)
 
-                println(s"${check_m(matches, ind432(0), ind432(1))}")
+                //println(s"${check_m(matches, ind432(0), ind432(1))}")
 
-                val index = if(check_m(matches, ind432(0), ind432(1)) == 3) ind432(0)
-                else if(check_m(matches, ind432(0), ind432(1)) == 0) ind432(1)
+                val index = if(check_m(matches, ind432.head, ind432(1)) == 3) ind432.head
+                else if(check_m(matches, ind432.head, ind432(1)) == 0) ind432(1)
                 else //random promotion
-                  if(r.nextFloat() < 0.5) ind432(0)
+                  if(r.nextFloat() < 0.5) ind432.head
                   else ind432(1)
 
                 index
 
               case 3 =>
 
-                println(s"tabelka zainteresowanych zespołów")
-                println(s"tabelka zainteresowanych zespołów - trzy mają tyle samo strzelonych punkty sprawdzam czy ktoś nie ma więcej punktów w bezpośrednich meczach")
+                //println(s"same points, goal balance and goals scored for three teams; check points in direct matches; reduced table")
 
                 val ind43_0_points: Int =
-                  check_m(matches, ind43(0), ind43(1)) + check_m(matches, ind43(0), ind43(2))
+                  check_m(matches, ind43.head, ind43(1)) + check_m(matches, ind43.head, ind43(2))
                 val ind43_1_points: Int =
-                  if(check_m(matches, ind43(0), ind43(1)) == 1) 1 else 3 - check_m(matches, ind43(0), ind43(1)) + check_m(matches, ind43(1), ind43(2))
+                  if(check_m(matches, ind43.head, ind43(1)) == 1) 1 else 3 - check_m(matches, ind43.head, ind43(1)) + check_m(matches, ind43(1), ind43(2))
                 val ind43_2_points: Int =
-                  (if(check_m(matches, ind43(0), ind43(2)) == 1) 1 else 3 - check_m(matches, ind43(0), ind43(2))) +
+                  (if(check_m(matches, ind43.head, ind43(2)) == 1) 1 else 3 - check_m(matches, ind43.head, ind43(2))) +
                     (if(check_m(matches, ind43(1), ind43(2)) == 1) 1 else 3 - check_m(matches, ind43(1), ind43(2)))
 
-                println(s"checki, " +
+                /*println(s"checki, " +
                   s"${check_m(matches, ind43(0), ind43(1)) + check_m(matches, ind43(0), ind43(2))}" +
                   s"${if(check_m(matches, ind43(0), ind43(1)) == 1) 1 else 3 - check_m(matches, ind43(0), ind43(1)) + check_m(matches, ind43(1), ind43(2))}" +
                   s"${(if(check_m(matches, ind43(0), ind43(2)) == 1) 1 else 3 - check_m(matches, ind43(0), ind43(2))) +
                     (if(check_m(matches, ind43(1), ind43(2)) == 1) 1 else 3 - check_m(matches, ind43(1), ind43(2)))}"
-                )
-                println(s"punkty trójki $ind43_0_points,$ind43_1_points,$ind43_2_points")
+                )*/
+                //println(s"punkty trójki $ind43_0_points,$ind43_1_points,$ind43_2_points")
 
                 val ind433 = List(ind43_0_points, ind43_1_points, ind43_2_points).iterator.count(p => p == math.max(ind43_0_points, math.max(ind43_1_points, ind43_2_points))) match {
 
@@ -499,7 +460,7 @@ object wc_simulator extends App{
 
                     val ind4331: Int = math.max(ind43_0_points, math.max(ind43_1_points, ind43_2_points)) match {
 
-                      case `ind43_0_points` => ind43(0)
+                      case `ind43_0_points` => ind43.head
                       case `ind43_1_points` => ind43(1)
                       case `ind43_2_points` => ind43(2)
                       case _ => 6
@@ -510,10 +471,10 @@ object wc_simulator extends App{
 
                     val ind4332 = List(ind43_0_points, ind43_1_points, ind43_2_points).zipWithIndex.filter(_._1 == math.max(ind43_0_points, math.max(ind43_1_points, ind43_2_points))).map(_._2)
 
-                    val index = if(check_m(matches, ind4332(0), ind4332(1)) == 3) ind4332(0)
-                    else if(check_m(matches, ind4332(0), ind4332(1)) == 0) ind4332(1)
+                    val index = if(check_m(matches, ind4332.head, ind4332(1)) == 3) ind4332.head
+                    else if(check_m(matches, ind4332.head, ind4332(1)) == 0) ind4332(1)
                     else //random promotion
-                      if(r.nextFloat() < 0.5) ind4332(0)
+                      if(r.nextFloat() < 0.5) ind4332.head
                       else ind4332(1)
 
                     ind43(index)
@@ -522,7 +483,7 @@ object wc_simulator extends App{
 
                     val rn = r.nextFloat()
 
-                    if(rn < 0.333) ind43(0)
+                    if(rn < 0.333) ind43.head
                     else if(rn < 0.666) ind43(1)
                     else ind43(2)
 
@@ -538,7 +499,7 @@ object wc_simulator extends App{
 
           case 4 =>
 
-            println(s"filtr po różnicy bramek - 4")
+            //println(s"goal difference filter - 4")
             //Thread.sleep(10000)
 
             val gf1 = goalDif(2 * ind4(0))
@@ -546,7 +507,7 @@ object wc_simulator extends App{
             val gf3 = goalDif(2 * ind4(2))
             val gf4 = goalDif(2 * ind4(3))
 
-            println(s"$gf1,$gf2, $gf3, $gf4")
+            //println(s"$gf1,$gf2, $gf3, $gf4")
 
             val I44: Int = List(gf1, gf2, gf3, gf4).count(_ == math.max(gf1,math.max(gf2, math.max(gf3, gf4)))) match {
 
@@ -563,42 +524,41 @@ object wc_simulator extends App{
 
               case 2 =>
 
-                println(s"442 - mecz bezpośredni")
+               // println(s"442 - direct match")
 
                 val ind442: Seq[Int] = List(gf1, gf2, gf3, gf4).zipWithIndex.filter(_._1 == math.max(gf1, math.max(gf2, math.max(gf3, gf4)))).map(_._2)
 
-                println(s"${check_m(matches, ind442(0), ind442(1))}")
+                //println(s"${check_m(matches, ind442(0), ind442(1))}")
 
-                val index = if(check_m(matches, ind442(0), ind442(1)) == 3) ind442(0)
-                else if(check_m(matches, ind442(0), ind442(1)) == 0) ind442(1)
+                val index = if(check_m(matches, ind442.head, ind442(1)) == 3) ind442.head
+                else if(check_m(matches, ind442.head, ind442(1)) == 0) ind442(1)
                 else //random promotion
-                  if(r.nextFloat() < 0.5) ind442(0)
+                  if(r.nextFloat() < 0.5) ind442.head
                   else ind442(1)
 
                 index
 
               case 3 =>
 
-                println(s"tabelka zainteresowanych zespołów")
-                println(s"tabelka zainteresowanych zespołów - trzy mają tyle samo strzelonych punkty sprawdzam czy ktoś nie ma więcej punktów w bezpośrednich meczach")
+                //println(s"same points, goal balance and goals scored for three teams; check points in direct matches; reduced table")
 
                 val ind443: Seq[Int] = List(gf1, gf2, gf3, gf4).zipWithIndex.filter(_._1 == math.max(gf1, math.max(gf2, math.max(gf3, gf4)))).map(_._2)
 
                 val ind443_0_points: Int =
-                  check_m(matches, ind443(0), ind443(1)) + check_m(matches, ind443(0), ind443(2))
+                  check_m(matches, ind443.head, ind443(1)) + check_m(matches, ind443.head, ind443(2))
                 val ind443_1_points: Int =
-                  if(check_m(matches, ind443(0), ind443(1)) == 1) 1 else 3 - check_m(matches, ind443(0), ind443(1)) + check_m(matches, ind443(1), ind443(2))
+                  if(check_m(matches, ind443.head, ind443(1)) == 1) 1 else 3 - check_m(matches, ind443.head, ind443(1)) + check_m(matches, ind443(1), ind443(2))
                 val ind443_2_points: Int =
-                  (if(check_m(matches, ind443(0), ind443(2)) == 1) 1 else 3 - check_m(matches, ind443(0), ind443(2))) +
+                  (if(check_m(matches, ind443.head, ind443(2)) == 1) 1 else 3 - check_m(matches, ind443.head, ind443(2))) +
                     (if(check_m(matches, ind443(1), ind443(2)) == 1) 1 else 3 - check_m(matches, ind443(1), ind443(2)))
 
-                println(s"checki, " +
+                /*println(s"checki, " +
                   s"${check_m(matches, ind443(0), ind443(1)) + check_m(matches, ind443(0), ind443(2))}" +
                   s"${if(check_m(matches, ind443(0), ind443(1)) == 1) 1 else 3 - check_m(matches, ind443(0), ind443(1)) + check_m(matches, ind443(1), ind443(2))}" +
                   s"${(if(check_m(matches, ind443(0), ind443(2)) == 1) 1 else 3 - check_m(matches, ind443(0), ind443(2))) +
                     (if(check_m(matches, ind443(1), ind443(2)) == 1) 1 else 3 - check_m(matches, ind443(1), ind443(2)))}"
-                )
-                println(s"punkty trójki $ind443_0_points,$ind443_1_points,$ind443_2_points")
+                )*/
+                //println(s"punkty trójki $ind443_0_points,$ind443_1_points,$ind443_2_points")
 
                 val index = List(ind443_0_points, ind443_1_points, ind443_2_points).iterator.count(p => p == math.max(ind443_0_points, math.max(ind443_1_points, ind443_2_points))) match {
 
@@ -606,7 +566,7 @@ object wc_simulator extends App{
 
                     val ind4431: Int = math.max(ind443_0_points, math.max(ind443_1_points, ind443_2_points)) match {
 
-                      case `ind443_0_points` => ind443(0)
+                      case `ind443_0_points` => ind443.head
                       case `ind443_1_points` => ind443(1)
                       case `ind443_2_points` => ind443(2)
                       case _ => 6
@@ -617,10 +577,10 @@ object wc_simulator extends App{
 
                     val ind4432 = List(ind443_0_points, ind443_1_points, ind443_2_points).zipWithIndex.filter(_._1 == math.max(ind443_0_points, math.max(ind443_1_points, ind443_2_points))).map(_._2)
 
-                    val index = if(check_m(matches, ind4432(0), ind4432(1)) == 3) ind4432(0)
-                    else if(check_m(matches, ind4432(0), ind4432(1)) == 0) ind4432(1)
+                    val index = if(check_m(matches, ind4432.head, ind4432(1)) == 3) ind4432.head
+                    else if(check_m(matches, ind4432.head, ind4432(1)) == 0) ind4432(1)
                     else //random promotion
-                      if(r.nextFloat() < 0.5) ind4432(0)
+                      if(r.nextFloat() < 0.5) ind4432.head
                       else ind4432(1)
 
                     ind443(index)
@@ -629,7 +589,7 @@ object wc_simulator extends App{
 
                     val rn = r.nextFloat()
 
-                    if(rn < 0.333) ind443(0)
+                    if(rn < 0.333) ind443.head
                     else if(rn < 0.666) ind443(1)
                     else ind443(2)
 
@@ -749,7 +709,7 @@ object wc_simulator extends App{
 
   val teamList: Seq[String] = group_list.flatMap(x => x.map(y => y.n)).toSeq
 
-  println(teamList)
+  //println(teamList)
 
   def single_group(group_list: Array[List[tInfo]], group_id: Int): (Int, Int, Int) ={
 
@@ -762,12 +722,12 @@ object wc_simulator extends App{
     var g1 = scala.collection.mutable.ArrayBuffer.empty[Int]
     var g2 = scala.collection.mutable.ArrayBuffer.empty[Int]
 
-    po += (0,0,0,0)
-    g += (0, 0, 0, 0, 0, 0, 0, 0)
-    b += (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
-    m += (0, 0, 0, 0, 0, 0)//0 -> 01; 1 -> 02; 2 -> 03; 3 -> 12; 4 -> 13; 5 -> 23
-    g1 += (0, 0, 0, 0, 0, 0)//0 -> 01; 1 -> 02; 2 -> 03; 3 -> 12; 4 -> 13; 5 -> 23
-    g2 += (0, 0, 0, 0, 0, 0)//0 -> 01; 1 -> 02; 2 -> 03; 3 -> 12; 4 -> 13; 5 -> 23
+    po.addAll(List(0,0,0,0))
+    g.addAll(List(0, 0, 0, 0, 0, 0, 0, 0))
+    b.addAll(List(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+    m.addAll(List(0, 0, 0, 0, 0, 0))//0 -> 01; 1 -> 02; 2 -> 03; 3 -> 12; 4 -> 13; 5 -> 23
+    g1.addAll(List(0, 0, 0, 0, 0, 0))//0 -> 01; 1 -> 02; 2 -> 03; 3 -> 12; 4 -> 13; 5 -> 23
+    g2.addAll(List(0, 0, 0, 0, 0, 0))//0 -> 01; 1 -> 02; 2 -> 03; 3 -> 12; 4 -> 13; 5 -> 23
 
 
 
@@ -794,7 +754,6 @@ object wc_simulator extends App{
     }
 
 
-
     def reduce_m(m: ArrayBuffer[Int], W: Int) = {
 
       if(W == 0) m.drop(3)
@@ -804,19 +763,6 @@ object wc_simulator extends App{
 
 
     }
-
-
-    /*add_m(0,1,3)
-    add_m(0,2,1)
-    add_m(0,3,3)
-    add_m(1,2,1)
-    add_m(1,3,3)
-    add_m(2,3,1)
-
-    println("m:", m)
-
-    println(check_m(m,1,2))
-    println(check_m(m,1,3))*/
 
     for (k <- 0 until 1) {
 
@@ -860,7 +806,7 @@ object wc_simulator extends App{
 
       for (i <- 0 until 4)
         for (j <- i + 1 until 4) {
-          println(s"${nt(i).n} - ${nt(j).n}")
+          //println(s"${nt(i).n} - ${nt(j).n}")
           val r: (Int, Int) = result(nt(i).p, nt(j).p)
 
           val p = {
@@ -893,16 +839,15 @@ object wc_simulator extends App{
 
     }
 
-    println(g)
+    /*println(g)
     println(po)
     println(s"bilans: $b")
-    println(s"matches_full: $m")
+    println(s"matches_full: $m")*/
 
     po.zipWithIndex.foreach(i => {
 
       val eqi = po.zipWithIndex.filter(p => p._1 == po(i._2)).map(_._2)
-      //println(i, eqi,if(eqi.length>1) eqi.foreach(j => if(i._2 != j) check_m(m,math.min(i._2,j),math.max(i._2,j))))
-      println(s" $i, $eqi,${if(eqi.length>1) eqi.filter(p => p != i._2).foreach(j => check_m(m,math.min(i._2,j),math.max(i._2,j))) else -1}")
+      //println(s" $i, $eqi,${if(eqi.length>1) eqi.filter(p => p != i._2).foreach(j => check_m(m,math.min(i._2,j),math.max(i._2,j))) else -1}")
     })
 
     //g = ArrayBuffer(2, 3, 4, 6, 8, 1, 2, 6)
@@ -912,23 +857,21 @@ object wc_simulator extends App{
 
     val W: Int = pickWinner(po, g, m)
 
-    //println(W)//2
-    //println(po.take(W) ,po.drop(W+1), g.take(2*W),g.drop(2*W+2))
-    println(s"${po.take(W) ++ po.drop(W + 1)}, ${g.take(2 * W) ++ g.drop(2 * W + 2)}")
+    //println(s"${po.take(W) ++ po.drop(W + 1)}, ${g.take(2 * W) ++ g.drop(2 * W + 2)}")
 
     val m_reduced = reduce_m(m, W)
 
-    println(s"m_reduced: $m_reduced, ${m_reduced.length}")
+    //println(s"m_reduced: $m_reduced, ${m_reduced.length}")
 
     val RU = pickWinner(po.take(W) ++ po.drop(W + 1), g.take(2 * W) ++ g.drop(2 * W + 2), m_reduced)
 
-    println(s"$W, $RU")
+    //println(s"$W, $RU")
 
     val RUC = if (RU < W) RU
     else RU + 1
 
-    println(s"$W, $RUC")
-    println(s"Awans: ${nt(W).n}, ${nt(RUC).n}")
+    //println(s"$W, $RUC")
+    //println(s"Awans: ${nt(W).n}, ${nt(RUC).n}")
 
     (group_id, W, RUC)
   }
@@ -991,7 +934,7 @@ object wc_simulator extends App{
     r1_16_tmp ++= Seq(G1._1,G2._1)
     r1_16_tmp ++= Seq(H1._1,H2._1)
 
-    test.foreach(x => println(s"${group_list(x._1)(x._2).n}, ${group_list(x._1)(x._3).n}"))
+    //test.foreach(x => println(s"${group_list(x._1)(x._2).n}, ${group_list(x._1)(x._3).n}"))
     //println(A1,A2)
 
   }
@@ -1002,13 +945,15 @@ object wc_simulator extends App{
 
 
 
-  println(r1_16_tmp)
+  //println(r1_16_tmp)
 
   val cc = r1_16_tmp.result()
 
   val teams_n_1_16: Seq[(String, Int)] = teamList.map(teamName => (teamName, cc.count(p => p == teamName)))
 
   println(teams_n_1_16)
+
+  //println(s"${teams_n_1_16(0)._1} -> ${teams_n_1_16(0)._2/1000.0}")
 
   //result(tG1, tG2, 10000)
 
