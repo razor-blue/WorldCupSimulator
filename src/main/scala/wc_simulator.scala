@@ -5,9 +5,9 @@ object wc_simulator extends App{
 
 
   //var pkt = scala.collection.mutable.Seq.empty[Int,(Int,Int,Int,Int)]
-  var r1_16_tmp: mutable.Builder[String, Seq[String]] = Seq.newBuilder[String]
+  private val r1_16_tmp: mutable.Builder[String, Seq[String]] = Seq.newBuilder[String]
 
-  val r = scala.util.Random
+  private val r = scala.util.Random
 
   case class t(o: Int, p: Int, a: Int) {
 
@@ -21,7 +21,7 @@ object wc_simulator extends App{
 
   }
 
-  def check_m(m: ArrayBuffer[Int], id_1: Int, id_2: Int): Int = {
+  private def check_m(m: ArrayBuffer[Int], id_1: Int, id_2: Int): Int = {
 
     if(m.length == 6)
       if(id_1 == 0 && id_2 == 1) m(0)
@@ -40,9 +40,9 @@ object wc_simulator extends App{
 
   }
 
-  def fill(p: t, max: Int, min: Int) = {
+  private def fill(p: t, max: Int, min: Int, minutes: Int) = {
 
-    val A = List.fill(90)(
+    val A = List.fill(minutes)(
       {
         val par = min
 
@@ -62,20 +62,20 @@ object wc_simulator extends App{
 
   }
 
-  def result(t1: t, t2: t): (Int, Int) = {
+  private def result(t1: t, t2: t, minutes: Int): (Int, Int) = {
 
     val max = math.max(t1.max, t2.max)
     val min = math.min(t1.min, t2.min)
 
-    val tA: List[String] = fill(t1, max, min)
-    val tB: List[String] = fill(t2, max, min)
+    val tA: List[String] = fill(t1, max, min, minutes)
+    val tB: List[String] = fill(t2, max, min, minutes)
 
     val (g_a, g_b): (Int, Int) = result(tA, tB): (Int, Int)
     (g_a, g_b)
 
   }
 
-  def result(a: List[String], b: List[String]): (Int, Int) = {
+  private def result(a: List[String], b: List[String]): (Int, Int) = {
 
     var act = "x"
     var pm_a = 0
@@ -137,20 +137,21 @@ object wc_simulator extends App{
     res
   }
 
-  def result(t_1: t, t_2: t, nr: Int): (Int, Int) = {
+  //play single match nr times
+  def result(t_1: t, t_2: t, minutes: Int, nr: Int): (Int, Int) = {
 
-    var pkt = scala.collection.mutable.ArrayBuffer.empty[Int]
-    var gs = scala.collection.mutable.ArrayBuffer.empty[Int]
-    var gc = scala.collection.mutable.ArrayBuffer.empty[Int]
+    val pkt = scala.collection.mutable.ArrayBuffer.empty[Int]
+    val gs = scala.collection.mutable.ArrayBuffer.empty[Int]
+    val gc = scala.collection.mutable.ArrayBuffer.empty[Int]
 
 
     val max = math.max(t_1.max, t_2.max)
     val min = math.min(t_1.min, t_2.min)
 
-    for (i <- 0 until nr) {
+    for (_ <-0 until nr) {
 
-      val t_A: List[String] = fill(t_1, max, min)
-      val t_B: List[String] = fill(t_2, max, min)
+      val t_A: List[String] = fill(t_1, max, min, minutes)
+      val t_B: List[String] = fill(t_2, max, min, minutes)
 
       val (g_a, g_b): (Int, Int) = result(t_A: List[String], t_B: List[String]): (Int, Int)
       pkt += g_a - g_b
@@ -162,7 +163,7 @@ object wc_simulator extends App{
     val pkt_s = pkt.zipWithIndex.sorted
 
     //println(pkt_s)
-    val med = pkt_s((nr - 1) / 2)
+    //val median = pkt_s((nr - 1) / 2)
 
     val m_gs = gs(pkt_s((nr - 1) / 2)._2)
     val m_gc = gc(pkt_s((nr - 1) / 2)._2)
@@ -172,8 +173,35 @@ object wc_simulator extends App{
     (m_gs, m_gc)
   }
 
+  private def extra_time(t1: t, t2: t, minutes: Int = 30): (Int, Int) = result(t1, t2, minutes)
+  private def regular_time(t1: t, t2: t, minutes: Int = 90): (Int, Int) = result(t1, t2, minutes)
 
-  def pickWinner(table: ArrayBuffer[Int], goalDif: ArrayBuffer[Int], matches: ArrayBuffer[Int]): Int = {
+  private def play_off(t1: (String, t), t2: (String, t)): (String, t) = {
+
+    val match_result: (Int, Int) = regular_time(t1._2, t2._2)
+
+    val advanced_team_stats: (String, t, (Int, Int), String) =
+      if (match_result._1 > match_result._2) (t1._1, t1._2, (0, 0), "regular time")
+      else if (match_result._1 < match_result._2) (t2._1, t2._2, (0, 0), "regular time")
+      else /*extra-time*/ {
+        val et: (Int, Int) = extra_time(t1._2, t2._2)
+        if (et._1 > et._2) (t1._1, t1._2, et, "after extra time")
+        else if (et._1 < et._2) (t2._1, t2._2, et, "after extra time")
+        else /*penalty shots*/ {
+          val n = r.nextFloat()
+          if (n < 0.5) (t1._1, t1._2, et, "penalty shoot-out")
+          else (t2._1, t2._2, et, "penalty shootout")
+        }
+      }
+
+    val result_after_extra_time = (match_result._1 + advanced_team_stats._3._1, match_result._2 + advanced_team_stats._3._2)
+
+    println(s"${t1._1}-${t2._1} $match_result -> ${if(advanced_team_stats._4.eq("regular time")) advanced_team_stats._4 else result_after_extra_time.toString() ++ " " ++ advanced_team_stats._4} -> ${advanced_team_stats._1} ")
+    (advanced_team_stats._1, advanced_team_stats._2)
+  }
+
+
+  private def pickWinner(table: ArrayBuffer[Int], goalDif: ArrayBuffer[Int], matches: ArrayBuffer[Int]): Int = {
 
     //println(s"matches: $matches")
 
@@ -216,7 +244,7 @@ object wc_simulator extends App{
 
           case 1 =>
 
-            //println(s"Lider in goal balance")
+            //println(s"Leader in goal balance")
 
             val ind31 = math.max(gd1, math.max(gd2, gd3)) match {
 
@@ -298,13 +326,13 @@ object wc_simulator extends App{
                   (if(check_m(matches, ind3(0), ind3(2)) == 1) 1 else 3 - check_m(matches, ind3(0), ind3(2))) +
                     (if(check_m(matches, ind3(1), ind3(2)) == 1) 1 else 3 - check_m(matches, ind3(1), ind3(2)))
 
-                /*println(s"checki, " +
+                /*println(s"check, " +
                   s"${check_m(matches, ind3(0), ind3(1)) + check_m(matches, ind3(0), ind3(2))}" +
                   s"${if(check_m(matches, ind3(0), ind3(1)) == 1) 1 else 3 - check_m(matches, ind3(0), ind3(1)) + check_m(matches, ind3(1), ind3(2))}" +
                   s"${(if(check_m(matches, ind3(0), ind3(2)) == 1) 1 else 3 - check_m(matches, ind3(0), ind3(2))) +
                     (if(check_m(matches, ind3(1), ind3(2)) == 1) 1 else 3 - check_m(matches, ind3(1), ind3(2)))}"
                 )*/
-                //println(s"punkty trójki,$ind33_0_points,$ind33_1_points,$ind33_2_points")
+                //println(s"points,$ind33_0_points,$ind33_1_points,$ind33_2_points")
 
                 val ind333 = List(ind33_0_points, ind33_1_points, ind33_2_points).iterator.count(p => p == math.max(ind33_0_points, math.max(ind33_1_points, ind33_2_points))) match {
 
@@ -446,13 +474,13 @@ object wc_simulator extends App{
                   (if(check_m(matches, ind43.head, ind43(2)) == 1) 1 else 3 - check_m(matches, ind43.head, ind43(2))) +
                     (if(check_m(matches, ind43(1), ind43(2)) == 1) 1 else 3 - check_m(matches, ind43(1), ind43(2)))
 
-                /*println(s"checki, " +
+                /*println(s"check, " +
                   s"${check_m(matches, ind43(0), ind43(1)) + check_m(matches, ind43(0), ind43(2))}" +
                   s"${if(check_m(matches, ind43(0), ind43(1)) == 1) 1 else 3 - check_m(matches, ind43(0), ind43(1)) + check_m(matches, ind43(1), ind43(2))}" +
                   s"${(if(check_m(matches, ind43(0), ind43(2)) == 1) 1 else 3 - check_m(matches, ind43(0), ind43(2))) +
                     (if(check_m(matches, ind43(1), ind43(2)) == 1) 1 else 3 - check_m(matches, ind43(1), ind43(2)))}"
                 )*/
-                //println(s"punkty trójki $ind43_0_points,$ind43_1_points,$ind43_2_points")
+                //println(s"points $ind43_0_points,$ind43_1_points,$ind43_2_points")
 
                 val ind433 = List(ind43_0_points, ind43_1_points, ind43_2_points).iterator.count(p => p == math.max(ind43_0_points, math.max(ind43_1_points, ind43_2_points))) match {
 
@@ -552,13 +580,12 @@ object wc_simulator extends App{
                   (if(check_m(matches, ind443.head, ind443(2)) == 1) 1 else 3 - check_m(matches, ind443.head, ind443(2))) +
                     (if(check_m(matches, ind443(1), ind443(2)) == 1) 1 else 3 - check_m(matches, ind443(1), ind443(2)))
 
-                /*println(s"checki, " +
+                /*println(s"check, " +
                   s"${check_m(matches, ind443(0), ind443(1)) + check_m(matches, ind443(0), ind443(2))}" +
                   s"${if(check_m(matches, ind443(0), ind443(1)) == 1) 1 else 3 - check_m(matches, ind443(0), ind443(1)) + check_m(matches, ind443(1), ind443(2))}" +
                   s"${(if(check_m(matches, ind443(0), ind443(2)) == 1) 1 else 3 - check_m(matches, ind443(0), ind443(2))) +
                     (if(check_m(matches, ind443(1), ind443(2)) == 1) 1 else 3 - check_m(matches, ind443(1), ind443(2)))}"
                 )*/
-                //println(s"punkty trójki $ind443_0_points,$ind443_1_points,$ind443_2_points")
 
                 val index = List(ind443_0_points, ind443_1_points, ind443_2_points).iterator.count(p => p == math.max(ind443_0_points, math.max(ind443_1_points, ind443_2_points))) match {
 
@@ -628,7 +655,7 @@ object wc_simulator extends App{
   //val B = fill(3, 3, 3)
 
 
-  val n = 10000
+  private val n = 1
 
 
   /*  for (j <- 1 until 10) {
@@ -644,45 +671,45 @@ object wc_simulator extends App{
     }*/
 
 
-  val tH1 = t(8, 8, 7)
-  val tH2 = t(7, 8, 9)
-  val tH3 = t(7, 6, 10)
-  val tH4 = t(5, 6, 5)
+  private val tH1 = t(8, 8, 7)
+  private val tH2 = t(7, 8, 9)
+  private val tH3 = t(7, 6, 10)
+  private val tH4 = t(5, 6, 5)
 
-  val tA1 = t(8, 9, 7)
-  val tA2 = t(3, 2, 1)
-  val tA3 = t(8, 9, 8)
-  val tA4 = t(5, 4, 7)
+  private val tA1 = t(8, 9, 7)
+  private val tA2 = t(3, 2, 1)
+  private val tA3 = t(8, 9, 8)
+  private val tA4 = t(5, 4, 7)
 
-  val tB1 = t(10, 10, 11)
-  val tB2 = t(10, 10, 10)
-  val tB3 = t(4, 7, 5)
-  val tB4 = t(4, 2, 6)
+  private val tB1 = t(10, 10, 11)
+  private val tB2 = t(10, 10, 10)
+  private val tB3 = t(4, 7, 5)
+  private val tB4 = t(4, 2, 6)
 
-  val tC1 = t(10, 10, 12)
-  val tC2 = t(5, 6, 3)
-  val tC3 = t(9, 6, 9)
-  val tC4 = t(3, 4, 4)
+  private val tC1: t = t(10, 10, 12)
+  private val tC2 = t(5, 6, 3)
+  private val tC3 = t(9, 6, 9)
+  private val tC4 = t(3, 4, 4)
 
-  val tD1 = t(9, 10, 12)
-  val tD2 = t(5, 7, 8)
-  val tD3 = t(7, 10, 10)
-  val tD4 = t(4, 5, 7)
+  private val tD1 = t(9, 10, 12)
+  private val tD2 = t(5, 7, 8)
+  private val tD3 = t(7, 10, 10)
+  private val tD4 = t(4, 5, 7)
 
-  val tE1 = t(8, 8, 7)
-  val tE2 = t(6, 10, 5)
-  val tE3 = t(10, 10, 12)
-  val tE4 = t(6, 3, 1)
+  private val tE1 = t(8, 8, 7)
+  private val tE2 = t(6, 10, 5)
+  private val tE3 = t(10, 10, 12)
+  private val tE4 = t(6, 3, 1)
 
-  val tF1 = t(10, 10, 10)
-  val tF2 = t(6, 5, 6)
-  val tF3 = t(1, 4, 5)
-  val tF4 = t(5, 6, 9)
+  private val tF1 = t(10, 10, 10)
+  private val tF2 = t(6, 5, 6)
+  private val tF3 = t(1, 4, 5)
+  private val tF4 = t(5, 6, 9)
 
-  val tG1 = t(10, 11, 11)
-  val tG2 = t(10, 11, 11)
-  val tG3 = t(1, 1, 1)
-  val tG4 = t(5, 7, 5)
+  private val tG1 = t(10, 11, 11)
+  private val tG2 = t(10, 11, 11)
+  private val tG3 = t(1, 1, 1)
+  private val tG4 = t(5, 7, 5)
 
 
   case class tInfo(n: String, p: t)
@@ -696,7 +723,7 @@ object wc_simulator extends App{
   //var nt = List(tInfo("Niemcy", tF1), tInfo("Szwecja", tF2), tInfo("Korea", tF3), tInfo("Meksyk", tF4))
   //var nt = List(tInfo("Anglia", tG1), tInfo("Belgia", tG2), tInfo("Panama", tG3), tInfo("Tunezja", tG4))
 
-  var group_list: Array[List[tInfo]] = Array(
+  private val group_list: Array[List[tInfo]] = Array(
     List(tInfo("Rosja", tA1), tInfo("Arabia S.", tA2), tInfo("Urugwaj", tA3), tInfo("Egipt", tA4)),
     List(tInfo("Portugalia", tB1), tInfo("Hiszpania", tB2), tInfo("Maroko", tB3), tInfo("Iran", tB4)),
     List(tInfo("Francja", tC1), tInfo("Australia", tC2), tInfo("Dania", tC3), tInfo("Peru", tC4)),
@@ -707,20 +734,20 @@ object wc_simulator extends App{
     List(tInfo("Polska", tH1), tInfo("Senegal", tH2), tInfo("Columbia", tH3), tInfo("Japonia", tH4))
   )
 
-  val teamList: Seq[String] = group_list.flatMap(x => x.map(y => y.n)).toSeq
+  private val teamList: Seq[String] = group_list.flatMap(x => x.map(y => y.n)).toSeq
 
   //println(teamList)
 
-  def single_group(group_list: Array[List[tInfo]], group_id: Int): (Int, Int, Int) ={
+  private def single_group(group_list: Array[List[tInfo]], group_id: Int): (Int, Int, Int) ={
 
     val nt: Seq[tInfo] = group_list(group_id)
 
-    var po = scala.collection.mutable.ArrayBuffer.empty[Int]
-    var g = scala.collection.mutable.ArrayBuffer.empty[Int]
-    var b = scala.collection.mutable.ArrayBuffer.empty[Int]
-    var m = scala.collection.mutable.ArrayBuffer.empty[Int]
-    var g1 = scala.collection.mutable.ArrayBuffer.empty[Int]
-    var g2 = scala.collection.mutable.ArrayBuffer.empty[Int]
+    val po = scala.collection.mutable.ArrayBuffer.empty[Int]
+    val g = scala.collection.mutable.ArrayBuffer.empty[Int]
+    val b = scala.collection.mutable.ArrayBuffer.empty[Int]
+    val m = scala.collection.mutable.ArrayBuffer.empty[Int]
+    val g1 = scala.collection.mutable.ArrayBuffer.empty[Int]
+    val g2 = scala.collection.mutable.ArrayBuffer.empty[Int]
 
     po.addAll(List(0,0,0,0))
     g.addAll(List(0, 0, 0, 0, 0, 0, 0, 0))
@@ -764,7 +791,7 @@ object wc_simulator extends App{
 
     }
 
-    for (k <- 0 until 1) {
+    for (_ <- 0 until n) {
 
       /*add_m(0,1,3)
       add_m(0,2,1)
@@ -807,7 +834,8 @@ object wc_simulator extends App{
       for (i <- 0 until 4)
         for (j <- i + 1 until 4) {
           //println(s"${nt(i).n} - ${nt(j).n}")
-          val r: (Int, Int) = result(nt(i).p, nt(j).p)
+          //val r: (Int, Int) = result(nt(i).p, nt(j).p)
+          val r: (Int, Int) = regular_time(nt(i).p, nt(j).p)
 
           val p = {
             if (r._1 > r._2) (3, 0)
@@ -841,14 +869,14 @@ object wc_simulator extends App{
 
     /*println(g)
     println(po)
-    println(s"bilans: $b")
+    println(s"goal balance: $b")
     println(s"matches_full: $m")*/
 
-    po.zipWithIndex.foreach(i => {
+    /*po.zipWithIndex.foreach(i => {
 
       val eqi = po.zipWithIndex.filter(p => p._1 == po(i._2)).map(_._2)
-      //println(s" $i, $eqi,${if(eqi.length>1) eqi.filter(p => p != i._2).foreach(j => check_m(m,math.min(i._2,j),math.max(i._2,j))) else -1}")
-    })
+      println(s" $i, $eqi,${if(eqi.length>1) eqi.filter(p => p != i._2).foreach(j => check_m(m,math.min(i._2,j),math.max(i._2,j))) else -1}")
+    })*/
 
     //g = ArrayBuffer(2, 3, 4, 6, 8, 1, 2, 6)
     //
@@ -871,22 +899,22 @@ object wc_simulator extends App{
     else RU + 1
 
     //println(s"$W, $RUC")
-    //println(s"Awans: ${nt(W).n}, ${nt(RUC).n}")
+    //println(s"Qualified: ${nt(W).n}, ${nt(RUC).n}")
 
     (group_id, W, RUC)
   }
 
-  def SG(group_list: Array[List[tInfo]], group_id: Int, qualified: Seq[(Int, Int, Int)]): Seq[(Int, Int, Int)] = {
+  private def SG(group_list: Array[List[tInfo]], group_id: Int, qualified: Seq[(Int, Int, Int)]): Seq[(Int, Int, Int)] = {
 
     if(group_id == 8) qualified
     else Seq(single_group(group_list, group_id)) ++ SG(group_list, group_id + 1, qualified)
 
   }
 
-  for(n <- 0 until 1000){
+  for(_ <- 0 until 1000){
 
-    val test: Seq[(Int, Int, Int)] = SG(group_list, 0, Seq.empty)
-    //test -> group number, id_winner, id_runner_up
+    val group_stage_results: Seq[(Int, Int, Int)] = SG(group_list, 0, Seq.empty)
+    //group_stage_results -> group number, id_winner, id_runner_up
 
     def group_qualifiers(
                           group_id: Int, group_list: Array[List[tInfo]],
@@ -898,29 +926,29 @@ object wc_simulator extends App{
       (winner, runner_up)
     }
 
-    val A1: (String, t) = group_qualifiers(0, group_list, test)._1
-    val A2: (String, t) = group_qualifiers(0, group_list, test)._2
+    val A1: (String, t) = group_qualifiers(0, group_list, group_stage_results)._1
+    val A2: (String, t) = group_qualifiers(0, group_list, group_stage_results)._2
 
-    val B1: (String, t) = group_qualifiers(1, group_list, test)._1
-    val B2: (String, t) = group_qualifiers(1, group_list, test)._2
+    val B1: (String, t) = group_qualifiers(1, group_list, group_stage_results)._1
+    val B2: (String, t) = group_qualifiers(1, group_list, group_stage_results)._2
 
-    val C1: (String, t) = group_qualifiers(2, group_list, test)._1
-    val C2: (String, t) = group_qualifiers(2, group_list, test)._2
+    val C1: (String, t) = group_qualifiers(2, group_list, group_stage_results)._1
+    val C2: (String, t) = group_qualifiers(2, group_list, group_stage_results)._2
 
-    val D1: (String, t) = group_qualifiers(3, group_list, test)._1
-    val D2: (String, t) = group_qualifiers(3, group_list, test)._2
+    val D1: (String, t) = group_qualifiers(3, group_list, group_stage_results)._1
+    val D2: (String, t) = group_qualifiers(3, group_list, group_stage_results)._2
 
-    val E1: (String, t) = group_qualifiers(4, group_list, test)._1
-    val E2: (String, t) = group_qualifiers(4, group_list, test)._2
+    val E1: (String, t) = group_qualifiers(4, group_list, group_stage_results)._1
+    val E2: (String, t) = group_qualifiers(4, group_list, group_stage_results)._2
 
-    val F1: (String, t) = group_qualifiers(5, group_list, test)._1
-    val F2: (String, t) = group_qualifiers(5, group_list, test)._2
+    val F1: (String, t) = group_qualifiers(5, group_list, group_stage_results)._1
+    val F2: (String, t) = group_qualifiers(5, group_list, group_stage_results)._2
 
-    val G1: (String, t) = group_qualifiers(6, group_list, test)._1
-    val G2: (String, t) = group_qualifiers(6, group_list, test)._2
+    val G1: (String, t) = group_qualifiers(6, group_list, group_stage_results)._1
+    val G2: (String, t) = group_qualifiers(6, group_list, group_stage_results)._2
 
-    val H1: (String, t) = group_qualifiers(7, group_list, test)._1
-    val H2: (String, t) = group_qualifiers(7, group_list, test)._2
+    val H1: (String, t) = group_qualifiers(7, group_list, group_stage_results)._1
+    val H2: (String, t) = group_qualifiers(7, group_list, group_stage_results)._2
 
     //val B1: (String, t) = (group_list(test(1)._1)(test(1)._2).n,group_list(test(1)._1)(test(1)._2).p)
     //val B2: (String, t) = (group_list(test(1)._1)(test(1)._3).n,group_list(test(1)._1)(test(1)._3).p)
@@ -934,22 +962,20 @@ object wc_simulator extends App{
     r1_16_tmp ++= Seq(G1._1,G2._1)
     r1_16_tmp ++= Seq(H1._1,H2._1)
 
+    val A1B2 = play_off(A1, B2)
+
+    println(A1B2)
+
     //test.foreach(x => println(s"${group_list(x._1)(x._2).n}, ${group_list(x._1)(x._3).n}"))
     //println(A1,A2)
 
   }
 
-
-
-
-
-
-
   //println(r1_16_tmp)
 
-  val cc = r1_16_tmp.result()
+  private val cc = r1_16_tmp.result()
 
-  val teams_n_1_16: Seq[(String, Int)] = teamList.map(teamName => (teamName, cc.count(p => p == teamName)))
+  private val teams_n_1_16: Seq[(String, Int)] = teamList.map(teamName => (teamName, cc.count(p => p == teamName)))
 
   println(teams_n_1_16)
 

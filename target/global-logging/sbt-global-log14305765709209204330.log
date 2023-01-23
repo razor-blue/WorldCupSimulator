@@ -1,0 +1,4 @@
+[debug] > Exec(scalaHome, None, None)
+[debug] Evaluating tasks: scalaHome
+[info] None
+[debug] > Exec(idea-shell, None, None)

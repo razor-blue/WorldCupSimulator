@@ -1,0 +1,4 @@
+[debug] > Exec(scalaSource, None, None)
+[debug] Evaluating tasks: Compile / scalaSource
+[info] C:\Users\Lukasz\IdeaProjects\WorldCupSimulator\src\main\scala
+[debug] > Exec(idea-shell, None, None)
