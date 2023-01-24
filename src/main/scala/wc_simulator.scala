@@ -5,7 +5,12 @@ object wc_simulator extends App{
 
 
   //var pkt = scala.collection.mutable.Seq.empty[Int,(Int,Int,Int,Int)]
-  private val r1_16_tmp: mutable.Builder[String, Seq[String]] = Seq.newBuilder[String]
+
+  private val r1_8_tmp: mutable.Builder[String, Seq[String]] = Seq.newBuilder[String]
+  private val r1_4_tmp: mutable.Builder[String, Seq[String]] = Seq.newBuilder[String]
+  private val r1_2_tmp: mutable.Builder[String, Seq[String]] = Seq.newBuilder[String]
+  private val r1_1_tmp: mutable.Builder[String, Seq[String]] = Seq.newBuilder[String]
+  private val winner_tmp: mutable.Builder[String, Seq[String]] = Seq.newBuilder[String]
 
   private val r = scala.util.Random
 
@@ -911,7 +916,9 @@ object wc_simulator extends App{
 
   }
 
-  for(_ <- 0 until 1000){
+  private val n_simulations = 1000
+
+  for(_ <- 0 until n_simulations){
 
     val group_stage_results: Seq[(Int, Int, Int)] = SG(group_list, 0, Seq.empty)
     //group_stage_results -> group number, id_winner, id_runner_up
@@ -953,31 +960,71 @@ object wc_simulator extends App{
     //val B1: (String, t) = (group_list(test(1)._1)(test(1)._2).n,group_list(test(1)._1)(test(1)._2).p)
     //val B2: (String, t) = (group_list(test(1)._1)(test(1)._3).n,group_list(test(1)._1)(test(1)._3).p)
 
-    r1_16_tmp ++= Seq(A1._1,A2._1)
-    r1_16_tmp ++= Seq(B1._1,B2._1)
-    r1_16_tmp ++= Seq(C1._1,C2._1)
-    r1_16_tmp ++= Seq(D1._1,D2._1)
-    r1_16_tmp ++= Seq(E1._1,E2._1)
-    r1_16_tmp ++= Seq(F1._1,F2._1)
-    r1_16_tmp ++= Seq(G1._1,G2._1)
-    r1_16_tmp ++= Seq(H1._1,H2._1)
+    r1_8_tmp ++= Seq(A1._1,A2._1) //++= adding another collection
+    //r1_8_tmp += (A1._1,A2._1)   // += adding elements to the collection
+    r1_8_tmp ++= Seq(B1._1,B2._1)
+    r1_8_tmp ++= Seq(C1._1,C2._1)
+    r1_8_tmp ++= Seq(D1._1,D2._1)
+    r1_8_tmp ++= Seq(E1._1,E2._1)
+    r1_8_tmp ++= Seq(F1._1,F2._1)
+    r1_8_tmp ++= Seq(G1._1,G2._1)
+    r1_8_tmp ++= Seq(H1._1,H2._1)
 
-    val A1B2 = play_off(A1, B2)
+    val A1B2: (String, t) = play_off(A1, B2)
+    val C1D2: (String, t) = play_off(C1, D2)
+    val E1F2: (String, t) = play_off(E1, F2)
+    val G1H2: (String, t) = play_off(G1, H2)
 
-    println(A1B2)
+    val B1A2: (String, t) = play_off(B1, A2)
+    val D1C2: (String, t) = play_off(D1, C2)
+    val F1E2: (String, t) = play_off(F1, E2)
+    val H1G2: (String, t) = play_off(H1, G2)
+
+    r1_4_tmp += (A1B2._1, C1D2._1, E1F2._1, G1H2._1, B1A2._1, D1C2._1, F1E2._1, H1G2._1)
+
+    val A1B2_C1D2: (String, t) = play_off(A1B2, C1D2)
+    val E1F2_G1H2: (String, t) = play_off(E1F2, G1H2)
+    val B1A2_D1C2: (String, t) = play_off(B1A2, D1C2)
+    val F1E2_H1G2: (String, t) = play_off(F1E2, H1G2)
+
+    r1_2_tmp += (A1B2_C1D2._1, E1F2_G1H2._1, B1A2_D1C2._1, F1E2_H1G2._1)
+
+    val A1B2_C1D2_E1F2_G1H2 = play_off(A1B2_C1D2,E1F2_G1H2)
+    val B1A2_D1C2_F1E2_H1G2 = play_off(B1A2_D1C2,F1E2_H1G2)
+
+    r1_1_tmp += (A1B2_C1D2_E1F2_G1H2._1, B1A2_D1C2_F1E2_H1G2._1)
+
+    val winner = play_off(A1B2_C1D2_E1F2_G1H2, B1A2_D1C2_F1E2_H1G2)
+
+    winner_tmp += winner._1
 
     //test.foreach(x => println(s"${group_list(x._1)(x._2).n}, ${group_list(x._1)(x._3).n}"))
     //println(A1,A2)
 
   }
 
-  //println(r1_16_tmp)
+  private val single_1_8 = r1_8_tmp.result()
+  private val single_1_4 = r1_4_tmp.result()
+  private val single_1_2 = r1_2_tmp.result()
+  private val single_1_1 = r1_1_tmp.result()
+  private val winner = winner_tmp.result()
 
-  private val cc = r1_16_tmp.result()
+  private val teams_n_1_8: Seq[(String, Int)] = teamList.map(teamName => (teamName, single_1_8.count(p => p == teamName)))
+  private val teams_n_1_4: Seq[(String, Int)] = teamList.map(teamName => (teamName, single_1_4.count(p => p == teamName)))
+  private val teams_n_1_2: Seq[(String, Int)] = teamList.map(teamName => (teamName, single_1_2.count(p => p == teamName)))
+  private val teams_n_1_1: Seq[(String, Int)] = teamList.map(teamName => (teamName, single_1_1.count(p => p == teamName)))
+  private val teams_winner: Seq[(String, Int)] = teamList.map(teamName => (teamName, winner.count(p => p == teamName)))
 
-  private val teams_n_1_16: Seq[(String, Int)] = teamList.map(teamName => (teamName, cc.count(p => p == teamName)))
-
-  println(teams_n_1_16)
+  println(s"---------- Advance from group stage for $n_simulations simulations ----------")
+  println(teams_n_1_8)
+  println(s"---------- Advance for quoter-final for $n_simulations simulations ----------")
+  println(teams_n_1_4)
+  println(s"---------- Advance for semi-final for $n_simulations simulations ----------")
+  println(teams_n_1_2)
+  println(s"---------- Advance for final for $n_simulations simulations ----------")
+  println(teams_n_1_1)
+  println(s"---------- Final winner for $n_simulations simulations ----------")
+  println(teams_winner)
 
   //println(s"${teams_n_1_16(0)._1} -> ${teams_n_1_16(0)._2/1000.0}")
 
